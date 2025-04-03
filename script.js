@@ -295,7 +295,7 @@ function showCTAScreen() {
     ctaScreen.style.display = 'flex';
     downloadBtn.addEventListener('click', function() {
         alert('Redirecting to app store...');
-        // window.location.href = 'https://play.google.com/store/apps/details?id=com.example.colorsort';
+        window.location.href = 'https://play.google.com/store/apps/details?id=games.burny.color.sort.woody.puzzle&hl=en-US';
     });
 }
 
