@@ -3,6 +3,9 @@
     padding: 0;
     box-sizing: border-box;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -11,6 +14,12 @@ body {
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    touch-action: manipulation;
+}
+
+body.game-active {
+    overflow: hidden;
+    position: fixed;
 }
 
 #game-container {
@@ -24,7 +33,7 @@ body {
     align-items: center;
 }
 
-/* Responsive Intro Screen */
+/* Intro Screen */
 #intro-screen {
     position: absolute;
     width: 100%;
@@ -41,53 +50,19 @@ body {
     text-align: center;
 }
 
-#intro-screen h1 {
-    font-size: clamp(1.5rem, 6vw, 2.5rem);
-    margin-bottom: 1rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-#intro-screen p {
-    font-size: clamp(1rem, 4vw, 1.2rem);
-    margin-bottom: 2rem;
-    max-width: min(80%, 500px);
-}
-
-#intro-screen .logo {
-    width: clamp(80px, 25vw, 120px);
-    height: clamp(80px, 25vw, 120px);
-    background-color: white;
-    border-radius: 20px;
-    margin-bottom: 2rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: clamp(2rem, 8vw, 3rem);
-    color: #764ba2;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-}
-
-/* Responsive Game Screen */
+/* Game Screen */
 #game-screen {
     position: absolute;
     width: 100%;
     height: 100%;
     display: none;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: center;
-    padding-top: 20px;
-    overflow-y: auto;
-}
-
-.game-info {
-    position: relative;
-    top: 0;
-    left: 0;
-    color: #333;
-    font-weight: bold;
-    margin-bottom: 10px;
-    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    align-self: center;
+    justify-self: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .tubes-container {
@@ -95,17 +70,16 @@ body {
     flex-wrap: wrap;
     justify-content: center;
     align-items: flex-end;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 15px;
+    margin: 0 auto;
     padding: 10px;
     width: 100%;
     max-width: 600px;
 }
 
-/* Responsive Tube */
 .tube {
-    width: clamp(50px, 15vw, 70px);
-    height: clamp(150px, 40vw, 220px);
+    width: 70px;
+    height: 200px;
     background-color: rgba(255,255,255,0.7);
     border-radius: 5px 5px 30px 30px;
     position: relative;
@@ -116,13 +90,11 @@ body {
     cursor: pointer;
     border: 2px solid rgba(0,0,0,0.1);
     transition: transform 0.2s;
-    margin-bottom: 10px;
 }
 
-/* Responsive Cube Images */
 .ball {
-    width: clamp(40px, 12vw, 50px);
-    height: clamp(40px, 12vw, 50px);
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     margin-top: 5px;
     cursor: grab;
@@ -133,20 +105,41 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-}
-
-.ball:active {
-    cursor: grabbing;
+    touch-action: none;
+    -webkit-user-drag: none;
 }
 
 .ball.dragging {
     opacity: 0.9;
     transform: scale(1.1);
-    z-index: 10;
+    z-index: 1000;
     box-shadow: 0 8px 16px rgba(0,0,0,0.3);
 }
 
-/* Responsive CTA Screen */
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+    #game-container{
+        background-image: 'assets/bg.png';
+    }
+    .tube {
+        width: 16vw;
+        height: 45vw;
+        max-width: 60px;
+        max-height: 180px;
+    }
+    
+    .ball {
+        width: 14vw;
+        height: 14vw;
+        max-width: 50px;
+        max-height: 50px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+}
+
+/* CTA Screen */
 #cta-screen {
     position: absolute;
     width: 100%;
@@ -162,20 +155,21 @@ body {
     text-align: center;
 }
 
-#cta-screen h2 {
-    font-size: clamp(1.5rem, 6vw, 2rem);
-    margin-bottom: 1rem;
+.download-btn {
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
 }
 
-#cta-screen p {
-    font-size: clamp(1rem, 4vw, 1.2rem);
-    margin-bottom: 2rem;
-    max-width: min(80%, 500px);
-}
-
-/* Responsive Progress Bar */
+/* Progress Bar */
 .progress-container {
-    width: min(80%, 400px);
+    width: 80%;
     height: 10px;
     background-color: rgba(255,255,255,0.3);
     border-radius: 5px;
@@ -191,27 +185,7 @@ body {
     transition: width 0.3s;
 }
 
-/* Responsive Button */
-.download-btn {
-    padding: clamp(10px, 3vw, 15px) clamp(20px, 6vw, 30px);
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    border: none;
-    border-radius: 30px;
-    font-size: clamp(1rem, 4vw, 1.2rem);
-    font-weight: bold;
-    cursor: pointer;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    transition: transform 0.3s, box-shadow 0.3s;
-    margin: 0 10px;
-}
-
-.download-btn:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 25px rgba(0,0,0,0.3);
-}
-
-/* Win Message Responsive */
+/* Win Message */
 .win-overlay {
     position: fixed;
     top: 0;
@@ -229,34 +203,6 @@ body {
     text-align: center;
 }
 
-.win-overlay h2 {
-    font-size: clamp(2rem, 8vw, 3rem);
-    margin-bottom: 1rem;
-    text-shadow: 0 0 10px rgba(255,255,255,0.5);
-}
+/* Remove color classes and update ball style */
 
-.win-overlay p {
-    font-size: clamp(1.2rem, 5vw, 1.5rem);
-    margin-bottom: 2rem;
-}
-
-/* Mobile Landscape Adjustments */
-@media (max-height: 500px) and (orientation: landscape) {
-    .tubes-container {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        justify-content: flex-start;
-    }
-    
-    .tube {
-        height: clamp(100px, 60vh, 150px);
-        margin-bottom: 0;
-    }
-    
-    .game-info {
-        position: absolute;
-        top: 5px;
-        left: 5px;
-    }
-}
+/* Optional: If using tube images */

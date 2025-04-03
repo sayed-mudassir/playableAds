@@ -15,7 +15,9 @@ const gameState = {
         ['assets/green.png', 'assets/green.png', 'assets/green.png'],
         ['assets/orange.png', 'assets/orange.png', 'assets/orange.png'],
         []
-    ]
+    ],
+    touchStartX: 0,
+    touchStartY: 0
 };
 
 // DOM elements
@@ -27,21 +29,17 @@ const tubesContainer = document.getElementById('tubes-container');
 const moveCount = document.getElementById('move-count');
 const downloadBtn = document.getElementById('download-btn');
 
-// Initialize game when DOM is loaded
+// Initialize game
 document.addEventListener('DOMContentLoaded', function() {
     initGame();
 });
 
 function initGame() {
-    // Start with intro sequence
     startIntroSequence();
-    
-    // Set up event listeners
     setupEventListeners();
 }
 
 function startIntroSequence() {
-    // Auto-play intro sequence (10 seconds)
     let progress = 100;
     const interval = setInterval(() => {
         progress -= 1;
@@ -57,7 +55,6 @@ function startIntroSequence() {
         }
     }, 100);
     
-    // Allow user to skip intro
     introScreen.addEventListener('click', function() {
         clearInterval(interval);
         introScreen.style.opacity = '0';
@@ -74,151 +71,198 @@ function startGame() {
     gameState.moves = 0;
     moveCount.textContent = '0';
     
-    // Load current level with slight shuffle
+    // Center the game area
+    tubesContainer.style.margin = 'auto';
+    tubesContainer.style.display = 'flex';
+    tubesContainer.style.justifyContent = 'center';
+    tubesContainer.style.alignItems = 'flex-end';
+    
     loadLevelWithChallenge();
     
-    // Start game timer (15 seconds of gameplay)
     setTimeout(() => {
         endGameplay();
     }, 15000);
 }
 
 function loadLevelWithChallenge() {
-    // Clear previous tubes
     tubesContainer.innerHTML = '';
-    
-    // Create a slightly shuffled version of the solution
     const shuffledTubes = JSON.parse(JSON.stringify(gameState.solution));
     
-    // Lightly shuffle 2-3 cubes between tubes
-    const shuffleCount = Math.floor(Math.random() * 2) + 2; // 2 or 3
-    
+    // Lightly shuffle cubes
+    const shuffleCount = Math.floor(Math.random() * 2) + 2;
     for (let i = 0; i < shuffleCount; i++) {
-        // Find non-empty tubes
         const nonEmptyTubes = shuffledTubes.filter(tube => tube.length > 0);
         if (nonEmptyTubes.length < 2) break;
         
-        // Pick two different tubes
         const tube1Index = Math.floor(Math.random() * nonEmptyTubes.length);
         let tube2Index;
         do {
             tube2Index = Math.floor(Math.random() * nonEmptyTubes.length);
         } while (tube2Index === tube1Index);
         
-        // Move the top cube from tube1 to tube2
-        const tube1 = nonEmptyTubes[tube1Index];
-        const tube2 = nonEmptyTubes[tube2Index];
-        const cube = tube1.pop();
-        tube2.push(cube);
+        const cube = nonEmptyTubes[tube1Index].pop();
+        nonEmptyTubes[tube2Index].push(cube);
     }
     
-    // Create tubes with the shuffled cubes
-    shuffledTubes.forEach((tubeColors, index) => {
+    // Create tubes with image-based cubes
+    shuffledTubes.forEach((tubeImages, index) => {
         const tube = document.createElement('div');
         tube.className = 'tube';
         tube.id = `tube-${index}`;
         
-        // Add balls to tube with image backgrounds
-        tubeColors.forEach(imgPath => {
+        tubeImages.forEach(imgPath => {
             const ball = document.createElement('div');
             ball.className = 'ball';
             ball.style.backgroundImage = `url('${imgPath}')`;
-            ball.draggable = true;
+            ball.style.backgroundSize = 'contain';
+            ball.style.backgroundRepeat = 'no-repeat';
+            ball.style.backgroundPosition = 'center';
             tube.appendChild(ball);
         });
         
         tubesContainer.appendChild(tube);
     });
     
-    // Set up drag and drop
     setupDragAndDrop();
 }
 
 function setupDragAndDrop() {
+    document.body.classList.add('game-active');
     const balls = document.querySelectorAll('.ball');
     const tubes = document.querySelectorAll('.tube');
     
+    // Mouse events
     balls.forEach(ball => {
-        ball.addEventListener('dragstart', function(e) {
-            gameState.draggedBall = this;
-            setTimeout(() => {
-                this.classList.add('dragging');
-            }, 0);
-            gameState.sounds.click.play();
-        });
-        
-        ball.addEventListener('dragend', function() {
-            this.classList.remove('dragging');
-            gameState.draggedBall = null;
-        });
+        ball.addEventListener('mousedown', handleDragStart);
+        ball.addEventListener('touchstart', handleTouchStart, { passive: false });
     });
     
     tubes.forEach(tube => {
-        tube.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-        
-        tube.addEventListener('dragenter', function(e) {
-            e.preventDefault();
-            if (this.children.length < 4) {
-                this.style.transform = 'translateY(-5px)';
-            }
-        });
-        
-        tube.addEventListener('dragleave', function() {
-            this.style.transform = 'translateY(0)';
-        });
-        
-        tube.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.style.transform = 'translateY(0)';
-            
-            if (gameState.draggedBall && this.children.length < 4) {
-                // Allow any cube to be placed on any other cube
-                this.appendChild(gameState.draggedBall);
-                gameState.moves++;
-                moveCount.textContent = gameState.moves;
-                gameState.sounds.pop.play();
-                
-                // Check for win condition
-                if (checkWinCondition()) {
-                    showWinMessage();
-                }
-            }
-        });
+        tube.addEventListener('mouseup', handleDrop);
+        tube.addEventListener('touchend', handleTouchDrop);
+        tube.addEventListener('dragover', handleDragOver);
     });
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchend', handleDragEnd);
+}
+
+// Mouse event handlers
+function handleDragStart(e) {
+    e.preventDefault();
+    gameState.draggedBall = this;
+    this.classList.add('dragging');
+    gameState.sounds.click.play();
+}
+
+function handleDragMove(e) {
+    if (!gameState.draggedBall) return;
+    
+    const x = e.clientX - gameState.draggedBall.offsetWidth / 2;
+    const y = e.clientY - gameState.draggedBall.offsetHeight / 2;
+    
+    gameState.draggedBall.style.position = 'absolute';
+    gameState.draggedBall.style.left = `${x}px`;
+    gameState.draggedBall.style.top = `${y}px`;
+    gameState.draggedBall.style.zIndex = '1000';
+}
+
+function handleDragEnd() {
+    if (!gameState.draggedBall) return;
+    gameState.draggedBall.classList.remove('dragging');
+    gameState.draggedBall.style.position = '';
+    gameState.draggedBall.style.left = '';
+    gameState.draggedBall.style.top = '';
+    gameState.draggedBall.style.zIndex = '';
+    gameState.draggedBall = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDrop(e) {
+    if (!gameState.draggedBall) return;
+    
+    const tube = e.currentTarget;
+    if (tube.children.length < 4) {
+        tube.appendChild(gameState.draggedBall);
+        gameState.moves++;
+        moveCount.textContent = gameState.moves;
+        gameState.sounds.pop.play();
+        
+        if (checkWinCondition()) {
+            showWinMessage();
+        }
+    }
+}
+
+// Touch event handlers
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    gameState.touchStartX = touch.clientX;
+    gameState.touchStartY = touch.clientY;
+    gameState.draggedBall = e.currentTarget;
+    gameState.draggedBall.classList.add('dragging');
+    gameState.sounds.click.play();
+}
+
+function handleTouchMove(e) {
+    if (!gameState.draggedBall) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const x = touch.clientX - gameState.draggedBall.offsetWidth / 2;
+    const y = touch.clientY - gameState.draggedBall.offsetHeight / 2;
+    
+    gameState.draggedBall.style.position = 'absolute';
+    gameState.draggedBall.style.left = `${x}px`;
+    gameState.draggedBall.style.top = `${y}px`;
+    gameState.draggedBall.style.zIndex = '1000';
+}
+
+function handleTouchDrop(e) {
+    if (!gameState.draggedBall) return;
+    e.preventDefault();
+    
+    const touch = e.changedTouches[0];
+    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (element && element.classList.contains('tube') && element.children.length < 4) {
+        element.appendChild(gameState.draggedBall);
+        gameState.moves++;
+        moveCount.textContent = gameState.moves;
+        gameState.sounds.pop.play();
+        
+        if (checkWinCondition()) {
+            showWinMessage();
+        }
+    }
 }
 
 function checkWinCondition() {
     const tubes = document.querySelectorAll('.tube');
     
-    // Check each tube meets the win conditions
-    for (let i = 0; i < tubes.length; i++) {
-        const balls = tubes[i].querySelectorAll('.ball');
-        
-        // Check if tube is empty (allowed in solution)
-        if (balls.length === 0) {
-            continue;
-        }
-        
-        // Get the first ball's image as reference
-        const firstBallImage = balls[0].style.backgroundImage;
-        
-        // Check all balls in tube have same image as first ball
-        for (let j = 1; j < balls.length; j++) {
-            if (balls[j].style.backgroundImage !== firstBallImage) {
-                return false;
+    for (const tube of tubes) {
+        const balls = tube.querySelectorAll('.ball');
+        if (balls.length > 0) {
+            const firstImage = balls[0].style.backgroundImage;
+            for (let i = 1; i < balls.length; i++) {
+                if (balls[i].style.backgroundImage !== firstImage) {
+                    return false;
+                }
             }
         }
     }
-    
     return true;
 }
 
 function showWinMessage() {
     gameState.sounds.win.play();
     
-    // Create win message overlay
     const winOverlay = document.createElement('div');
     winOverlay.className = 'win-overlay';
     
@@ -239,7 +283,6 @@ function showWinMessage() {
     winOverlay.appendChild(winText);
     winOverlay.appendChild(movesText);
     winOverlay.appendChild(continueBtn);
-    
     document.body.appendChild(winOverlay);
 }
 
@@ -250,17 +293,13 @@ function endGameplay() {
 
 function showCTAScreen() {
     ctaScreen.style.display = 'flex';
-    
-    // Set up download button
     downloadBtn.addEventListener('click', function() {
-        // In a real ad, this would redirect to app store
-        // alert('Redirecting to app store...');
-        window.location.href = 'https://play.google.com/store/apps/details?id=games.burny.color.sort.woody.puzzle&hl=en-US';
+        alert('Redirecting to app store...');
+        // window.location.href = 'https://play.google.com/store/apps/details?id=com.example.colorsort';
     });
 }
 
 function setupEventListeners() {
-    // Prevent default drag behaviors
     document.addEventListener('dragover', function(e) {
         e.preventDefault();
     });
